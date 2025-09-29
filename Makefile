@@ -105,9 +105,6 @@ CPU_ARCH = native
 # Git hash of release 1.3
 GIT_HASH       = -D__KWAVE_GIT_HASH__=\"0ba023063e3f29685e1e346f56883378d961f9f1\"
 
-# Replace tabs by spaces
-.RECIPEPREFIX += 
-
 ################################ GNU g++ + FFTW ################################
 ifeq ($(COMPILER), GNU)
   # Compiler name
@@ -299,13 +296,13 @@ all: $(TARGET)
 
 # Link target
 $(TARGET): $(DEPENDENCIES)
-  $(CXX) $(LDFLAGS) $(DEPENDENCIES) $(LDLIBS) -o $@
+	$(CXX) $(LDFLAGS) $(DEPENDENCIES) $(LDLIBS) -o $@
 
 # Compile units
 %.o: %.cpp
-  $(CXX) $(CXXFLAGS) -o $@ -c $<
+	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 # Clean repository
 .PHONY: clean
 clean:
-  rm -f $(DEPENDENCIES) $(TARGET)
+	rm -f $(DEPENDENCIES) $(TARGET)
