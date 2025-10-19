@@ -1,0 +1,83 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(kspaceFirstOrderOMP LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Dependencies ----------------------------------------------------------------
+find_package(HDF5 REQUIRED COMPONENTS C HL)
+find_package(ZLIB REQUIRED)
+find_package(SZIP QUIET)
+
+find_path(KSPACE_FFTW_INCLUDE_DIR fftw3.h)
+find_library(KSPACE_FFTW_LIB fftw3f)
+find_library(KSPACE_FFTW_OMP_LIB fftw3f_omp)
+
+if(NOT KSPACE_FFTW_INCLUDE_DIR OR NOT KSPACE_FFTW_LIB OR NOT KSPACE_FFTW_OMP_LIB)
+  message(FATAL_ERROR "FFTW single-precision libraries (fftw3f, fftw3f_omp) not found. Add their location to CMAKE_PREFIX_PATH.")
+endif()
+
+find_package(OpenMP REQUIRED COMPONENTS CXX)
+
+# Sources ---------------------------------------------------------------------
+add_executable(kspaceFirstOrder-OMP
+  main.cpp
+  Containers/MatrixContainer.cpp
+  Containers/OutputStreamContainer.cpp
+  Hdf5/Hdf5File.cpp
+  Hdf5/Hdf5FileHeader.cpp
+  KSpaceSolver/KSpaceFirstOrderSolver.cpp
+  Logger/Logger.cpp
+  MatrixClasses/BaseFloatMatrix.cpp
+  MatrixClasses/BaseIndexMatrix.cpp
+  MatrixClasses/ComplexMatrix.cpp
+  MatrixClasses/FftwComplexMatrix.cpp
+  MatrixClasses/FftwRealMatrix.cpp
+  MatrixClasses/IndexMatrix.cpp
+  MatrixClasses/RealMatrix.cpp
+  OutputStreams/BaseOutputStream.cpp
+  OutputStreams/CuboidOutputStream.cpp
+  OutputStreams/IndexOutputStream.cpp
+  OutputStreams/WholeDomainOutputStream.cpp
+  Parameters/CommandLineParameters.cpp
+  Parameters/Parameters.cpp
+)
+
+target_include_directories(kspaceFirstOrder-OMP
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${KSPACE_FFTW_INCLUDE_DIR}
+    ${HDF5_INCLUDE_DIRS}
+)
+
+target_link_libraries(kspaceFirstOrder-OMP PRIVATE OpenMP::OpenMP_CXX)
+
+set(_hdf5_libs ${HDF5_LIBRARIES})
+if(DEFINED HDF5_HL_LIBRARIES)
+  list(APPEND _hdf5_libs ${HDF5_HL_LIBRARIES})
+endif()
+
+target_link_libraries(kspaceFirstOrder-OMP
+  PRIVATE
+    ${KSPACE_FFTW_LIB}
+    ${KSPACE_FFTW_OMP_LIB}
+    ${_hdf5_libs}
+    ZLIB::ZLIB
+)
+
+if(SZIP_FOUND)
+  target_link_libraries(kspaceFirstOrder-OMP PRIVATE SZIP::SZIP)
+endif()
+
+if(CMAKE_DL_LIBS)
+  target_link_libraries(kspaceFirstOrder-OMP PRIVATE ${CMAKE_DL_LIBS})
+endif()
+
+target_link_libraries(kspaceFirstOrder-OMP PRIVATE m)
+target_compile_options(kspaceFirstOrder-OMP PRIVATE -O3 -Wall)
+
+set_target_properties(kspaceFirstOrder-OMP PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
+)
