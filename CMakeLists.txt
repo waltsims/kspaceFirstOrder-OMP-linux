@@ -7,12 +7,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Dependencies ----------------------------------------------------------------
-# Prefer fully static linking so the released binary runs on systems without
-# matching FFTW, HDF5, libstdc++, etc. (Restores the plug-and-play property
-# the legacy Makefile build had.) glibc itself cannot be safely static-linked
-# — the build runner's glibc version sets the floor.
-set(HDF5_USE_STATIC_LIBRARIES ON)
-
+# Prefer static linking for FFTW and the C++ runtime so the released binary
+# runs on systems without matching FFTW installed (the major v1.4.0
+# regression).  HDF5 remains dynamic because distros ship a stable libhdf5
+# ABI (libhdf5_serial.so.103 / hdf5_hl.so.100 on Ubuntu 22.04+) and pulling
+# in static HDF5 drags transitive szip/zlib symbols that require explicit
+# resolution.  glibc itself cannot be safely static-linked — the build
+# runner's glibc version sets the floor.
 find_package(HDF5 REQUIRED COMPONENTS C HL)
 find_package(ZLIB REQUIRED)
 find_package(SZIP QUIET)
