@@ -7,13 +7,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Dependencies ----------------------------------------------------------------
+# Prefer fully static linking so the released binary runs on systems without
+# matching FFTW, HDF5, libstdc++, etc. (Restores the plug-and-play property
+# the legacy Makefile build had.) glibc itself cannot be safely static-linked
+# — the build runner's glibc version sets the floor.
+set(HDF5_USE_STATIC_LIBRARIES ON)
+
 find_package(HDF5 REQUIRED COMPONENTS C HL)
 find_package(ZLIB REQUIRED)
 find_package(SZIP QUIET)
 
 find_path(KSPACE_FFTW_INCLUDE_DIR fftw3.h)
-find_library(KSPACE_FFTW_LIB fftw3f)
-find_library(KSPACE_FFTW_OMP_LIB fftw3f_omp)
+# Prefer the .a archive over .so so the binary doesn't depend on system FFTW.
+find_library(KSPACE_FFTW_LIB NAMES libfftw3f.a fftw3f)
+find_library(KSPACE_FFTW_OMP_LIB NAMES libfftw3f_omp.a fftw3f_omp)
 
 if(NOT KSPACE_FFTW_INCLUDE_DIR OR NOT KSPACE_FFTW_LIB OR NOT KSPACE_FFTW_OMP_LIB)
   message(FATAL_ERROR "FFTW single-precision libraries (fftw3f, fftw3f_omp) not found. Add their location to CMAKE_PREFIX_PATH.")
@@ -77,6 +84,14 @@ endif()
 
 target_link_libraries(kspaceFirstOrder-OMP PRIVATE m)
 target_compile_options(kspaceFirstOrder-OMP PRIVATE -O3 -Wall)
+
+# Static C++ runtime so the binary runs on distros with older libstdc++ /
+# libgcc_s than the build runner; pairs with the static FFTW/HDF5 link above
+# to make the executable self-contained.
+target_link_options(kspaceFirstOrder-OMP PRIVATE
+  -static-libgcc
+  -static-libstdc++
+)
 
 set_target_properties(kspaceFirstOrder-OMP PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}"
